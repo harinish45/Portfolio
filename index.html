@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harinish Sabapathi — 3D Portfolio</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        ink: '#050810', 'ink-2': 'rgba(8, 12, 20, 0.85)', 'ink-3': '#1d2026',
+        paper: '#ffffff', 'paper-dim': '#e2e8f0', muted: '#94a3b8',
+        accent: '#cdff4d', 'accent-warm': '#f5a623', 'accent-cool': '#00ffff',
+      },
+      fontFamily: {
+        display: ['Fraunces', 'serif'], sans: ['Inter Tight', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'],
+      }
+    }
+  }
+}
+</script>
+<style>
+:root {
+  --bg: #050810; --surface: rgba(15, 23, 35, 0.9); --fg: #ffffff; --fg-dim: #e2e8f0;
+  --accent: #cdff4d; --accent-warm: #f5a623; --accent-cool: #00ffff; --border: rgba(255, 255, 255, 0.2); --border-strong: rgba(205, 255, 77, 0.8);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: 'Inter Tight', sans-serif;
+  overflow-x: hidden; -webkit-font-smoothing: antialiased; transform-style: preserve-3d;
+}
+.font-display { font-family: 'Fraunces', serif; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+::selection { background: var(--accent); color: var(--bg); }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+
+#webgl-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none; opacity: 0.6; }
+.vignette { position: fixed; inset: 0; pointer-events: none; z-index: 50; background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.95) 100%); }
+.scroll-ind { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); width: 0%; z-index: 200; box-shadow: 0 0 20px var(--accent); }
+
+.section-3d { transform-style: preserve-3d; transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 1.2s ease; opacity: 1; }
+.section-3d.in-view { transform: perspective(1400px) rotateX(0deg) translateZ(0) translateY(0); }
+
+.section-label { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--accent); display: inline-flex; align-items: center; gap: 14px; font-weight: 600; }
+.section-label::before { content: ''; width: 40px; height: 2px; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.reveal-line { display: block; overflow: hidden; padding-bottom: 0.1em; }
+.reveal-line > span { display: inline-block; transform: translateY(110%); transition: transform 1.1s cubic-bezier(0.16, 1, 0.3, 1); }
+.in-view .reveal-line > span { transform: translateY(0); }
+
+.btn-primary { background: var(--accent); color: var(--bg); padding: 16px 32px; font-weight: 700; font-size: 14px; display: inline-flex; align-items: center; gap: 12px; border-radius: 4px; transition: all 0.3s; box-shadow: 0 0 30px rgba(205, 255, 77, 0.4); border: 1px solid var(--accent); }
+.btn-primary:hover { box-shadow: 0 15px 50px rgba(205, 255, 77, 0.8); transform: translateZ(40px) scale(1.05); }
+.btn-ghost { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); color: var(--fg); padding: 12px 20px; font-weight: 600; font-size: 12px; border: 1px solid var(--border-strong); border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s; width: 100%; }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); transform: translateZ(30px); background: rgba(205, 255, 77, 0.1); box-shadow: 0 10px 30px rgba(205, 255, 77, 0.2); }
+
+.card-3d { position: relative; background: var(--surface); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 6px; transition: transform 0.3s, box-shadow 0.3s; overflow: hidden; transform-style: preserve-3d; box-shadow: 0 15px 40px rgba(0,0,0,0.5); }
+.card-3d::before { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1; background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(205, 255, 77, 0.2), transparent 50%); opacity: 0; transition: opacity 0.3s; }
+.card-3d:hover::before { opacity: 1; }
+.card-3d:hover { border-color: var(--border-strong); box-shadow: 0 25px 60px rgba(0,0,0,0.7), 0 0 20px rgba(205, 255, 77, 0.2); }
+.card-3d .layer { transform: translateZ(30px); }
+.card-3d:hover .layer-1 { transform: translateZ(60px); }
+.card-3d:hover .layer-2 { transform: translateZ(90px); }
+
+.tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); background: rgba(0, 0, 0, 0.6); font-weight: 600; }
+.bar { height: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 2px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--accent); width: 0; transition: width 1.6s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 0 15px var(--accent); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; position: relative; box-shadow: 0 0 10px var(--accent); }
+.dot::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; background: var(--accent); opacity: 0.4; animation: pulse 2.4s infinite; }
+@keyframes pulse { 0% { transform: scale(0.6); opacity: 0.6; } 100% { transform: scale(2.4); opacity: 0; } }
+.nav-link { color: var(--fg-dim); transition: color 0.2s; font-family: 'JetBrains Mono', monospace; font-size: 13px; position: relative; font-weight: 500; }
+.nav-link::after { content: ''; position: absolute; bottom: -6px; left: 0; width: 0; height: 2px; background: var(--accent); transition: width 0.3s; box-shadow: 0 0 5px var(--accent); }
+.nav-link:hover { color: var(--accent); } .nav-link:hover::after { width: 100%; }
+
+/* === 1. NINJA & STARS === */
+#ninja-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; overflow: hidden; }
+.shuriken { position: absolute; width: 60px; height: 60px; background: var(--accent); clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); opacity: 1; box-shadow: 0 0 30px var(--accent), 0 0 60px var(--accent); }
+.ninja-runner { position: absolute; bottom: 150px; width: 140px; height: 160px; z-index: 4; animation: ninjaRun 10s linear infinite, ninjaBob 0.4s ease-in-out infinite alternate; filter: drop-shadow(0 0 20px var(--accent)); }
+@keyframes ninjaRun { 0% { left: -200px; } 100% { left: 110%; } }
+@keyframes ninjaBob { 0% { transform: translateY(0); } 100% { transform: translateY(-30px); } }
+
+/* === 3. OPERATIONS LOG === */
+.tl-section { perspective: 1200px; }
+.tl-rail-3d { transform: rotateY(20deg) translateZ(-80px); transform-style: preserve-3d; background: var(--accent) !important; box-shadow: 0 0 20px var(--accent); width: 4px !important; }
+.tl-card-3d { transform: rotateY(-45deg) translateX(50px) translateZ(-100px); opacity: 1; transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1); }
+.tl-card-3d.in-view { transform: rotateY(0) translateX(0) translateZ(0); }
+
+/* === 4. REPOSITORY INDEX === */
+.book-stand { perspective: 2000px; }
+.book-card { background: linear-gradient(135deg, rgba(15, 23, 35, 0.95), rgba(8, 12, 20, 0.98)); border: 1px solid var(--border); border-radius: 4px 12px 12px 4px; transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s; transform-style: preserve-3d; box-shadow: 15px 15px 40px rgba(0,0,0,0.6); position: relative; overflow: hidden; transform: perspective(1000px) rotateX(5deg) rotateY(-5deg); }
+.book-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 12px; background: var(--accent); transform: translateZ(-20px); box-shadow: 0 0 25px var(--accent); }
+.book-card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,0,0.5) 0%, transparent 15%); pointer-events: none; }
+.book-card:hover { transform: perspective(1000px) rotateY(0deg) rotateX(0deg) translateZ(80px) scale(1.08) !important; box-shadow: -30px 30px 60px rgba(0,0,0,0.8), 0 0 40px rgba(205, 255, 77, 0.3); z-index: 10; border-color: var(--accent); }
+
+/* === 5. 3D CREDENTIAL MATRIX (FIXED ALIGNMENT) === */
+.cred-stage { 
+  perspective: 1200px; 
+  height: clamp(500px, 70vh, 700px); 
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  position: relative; 
+  margin-top: 50px; 
+  margin-bottom: 50px; 
+  overflow: hidden; /* Prevent horizontal scroll */
+}
+.cred-grid-floor { 
+  position: absolute; width: 2000px; height: 2000px; 
+  background-image: linear-gradient(rgba(205, 255, 77, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(205, 255, 77, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px; 
+  transform: rotateX(90deg) translateZ(-200px); 
+  mask-image: radial-gradient(circle, black 0%, transparent 60%);
+  -webkit-mask-image: radial-gradient(circle, black 0%, transparent 60%);
+  pointer-events: none; /* Ensure clicks pass through */
+}
+.cred-core { 
+  position: absolute; width: 200px; height: 200px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(205, 255, 77, 0.2) 0%, transparent 70%);
+  box-shadow: 0 0 100px rgba(205, 255, 77, 0.4);
+  animation: pulseCore 4s ease-in-out infinite;
+  pointer-events: none; /* Ensure clicks pass through */
+}
+@keyframes pulseCore { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; } }
+.cred-rotor { 
+  position: relative; width: 200px; height: 120px; 
+  transform-style: preserve-3d; 
+  animation: spinCred 60s linear infinite; 
+  transform: rotateX(-10deg); 
+}
+.cred-stage:hover .cred-rotor { animation-play-state: paused; }
+.cred-card { 
+  position: absolute; width: 100%; height: 100%; 
+  background: rgba(8, 12, 20, 0.9); border: 1px solid var(--accent-cool); 
+  border-radius: 6px; box-shadow: 0 0 15px rgba(0, 255, 255, 0.3); 
+  display: flex; flex-direction: column; justify-content: center; align-items: center; 
+  padding: 10px; text-align: center; transition: all 0.3s; cursor: pointer; 
+  text-decoration: none; backdrop-filter: blur(5px); 
+  backface-visibility: visible;
+}
+.cred-card:hover { 
+  border-color: #fff; box-shadow: 0 0 40px rgba(255, 255, 255, 0.8); 
+  transform: scale(1.1) translateZ(30px); 
+  z-index: 100; background: rgba(15, 23, 35, 1); 
+}
+@keyframes spinCred { from { transform: rotateX(-10deg) rotateY(0deg); } to { transform: rotateX(-10deg) rotateY(360deg); } }
+
+/* === 6. RECOGNITION (FIXED ALIGNMENT) === */
+.holo-vault {
+  background: linear-gradient(135deg, rgba(15, 23, 35, 0.8), rgba(8, 12, 20, 0.95));
+  border: 1px solid var(--accent); border-left: 4px solid var(--accent);
+  padding: 32px; 
+  clip-path: polygon(0 0, 100% 0, 100% 85%, 95% 100%, 0 100%);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s;
+  transform-style: preserve-3d; box-shadow: 0 15px 40px rgba(0,0,0,0.6), 0 0 20px rgba(205, 255, 77, 0.1);
+  position: relative; overflow: hidden; backdrop-filter: blur(10px);
+  transform: perspective(1000px) rotateY(0deg);
+  display: flex; align-items: center; gap: 24px;
+}
+.holo-vault::before {
+  content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 50%; 
+  background: linear-gradient(0deg, transparent, rgba(205, 255, 77, 0.2), transparent);
+  transform: rotate(45deg); animation: scanLine 4s linear infinite;
+}
+@keyframes scanLine { 0% { top: -50%; } 100% { top: 150%; } }
+.holo-vault:hover { transform: rotateY(0deg) rotateX(5deg) translateZ(50px) scale(1.03); box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 40px rgba(205, 255, 77, 0.4); }
+
+/* === 7. LANGUAGES (FIXED ALIGNMENT) === */
+.lang-stage { perspective: 800px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.energy-core {
+  width: 140px; height: 140px; position: relative; transform-style: preserve-3d;
+  animation: spinCore 12s linear infinite;
+  flex-shrink: 0; /* Prevent distortion */
+}
+@keyframes spinCore { from { transform: rotateY(0deg) rotateX(10deg); } to { transform: rotateY(360deg) rotateX(10deg); } }
+.core-ring {
+  position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--accent);
+  box-shadow: 0 0 15px var(--accent), inset 0 0 15px var(--accent);
+}
+.core-reactor {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 40px; height: 40px; border-radius: 50%; background: var(--accent);
+  box-shadow: 0 0 30px var(--accent); animation: reactorPulse 2s ease-in-out infinite;
+}
+@keyframes reactorPulse { 0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; } 50% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; } }
+.core-text {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) translateZ(40px);
+  font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 18px; color: #fff;
+  text-shadow: 0 0 10px #000;
+}
+
+/* === 8. NATURE SCENE === */
+#nature-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+</style>
+</head>
+<body class="bg-ink">
+
+<canvas id="webgl-bg"></canvas>
+<div id="ninja-container"></div>
+<div class="vignette"></div>
+<div class="scroll-ind" id="scrollInd"></div>
+
+<nav class="fixed top-0 left-0 right-0 z-40 backdrop-blur-xl bg-ink-2 border-b border-[var(--border)]">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 py-5 flex items-center justify-between">
+    <a href="#top" class="font-mono text-sm flex items-center gap-2">
+      <span class="w-3 h-3 bg-accent rounded-full shadow-[0_0_15px_var(--accent)]"></span>
+      <span class="text-paper font-bold">Harinish</span><span class="text-muted">.</span><span class="text-muted text-xs">S</span>
+    </a>
+    <div class="hidden md:flex items-center gap-9">
+      <a href="#brief" class="nav-link">/brief</a>
+      <a href="#capabilities" class="nav-link">/capabilities</a>
+      <a href="#operations" class="nav-link">/operations</a>
+      <a href="#repositories" class="nav-link">/repositories</a>
+      <a href="#credentials" class="nav-link">/credentials</a>
+      <a href="#contact" class="nav-link">/contact</a>
+    </div>
+    <div class="hidden md:flex items-center gap-2 font-mono text-[11px] text-muted tracking-widest font-bold">
+      <span class="dot"></span><span>OPEN_TO_WORK</span>
+    </div>
+  </div>
+</nav>
+
+<section id="top" class="relative min-h-screen flex items-center pt-28 pb-20 overflow-hidden">
+  <div class="relative z-10 max-w-7xl mx-auto px-6 lg:px-10 w-full">
+    <div class="grid lg:grid-cols-12 gap-12 items-center">
+      <div class="lg:col-span-8">
+        <div class="inline-flex items-center gap-3 mb-10 font-mono text-[12px] tracking-widest uppercase border border-[var(--border-strong)] rounded-full px-5 py-2 bg-ink-2 backdrop-blur-sm text-accent font-bold">
+          <span class="dot"></span>
+          <span>Salem, IN · Available 2026</span>
+        </div>
+        <h1 class="font-display font-light mb-8 leading-[0.95] text-paper" style="font-size: clamp(3.5rem, 10vw, 8rem);">
+          <span class="reveal-line in-view"><span>Harinish</span></span>
+          <span class="reveal-line in-view" style="transition-delay: 0.2s;"><span><em class="italic font-normal" style="color: var(--accent); text-shadow: 0 0 50px rgba(205, 255, 77, 0.8);">Sabapathi.</em></span></span>
+        </h1>
+        <div class="mb-10 max-w-2xl">
+          <p class="text-xl md:text-2xl text-paper-dim leading-relaxed font-light">
+            CSE undergraduate building expertise across
+            <span class="text-paper font-semibold">zero-trust security</span>,
+            <span class="text-paper font-semibold">cloud infrastructure</span>, and
+            <span class="text-paper font-semibold">applied AI</span> —
+            with four AICTE internships, 29 professional certifications, and 14+ documented repositories.
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-6 mb-12">
+          <a href="#operations" class="btn-primary"><span>View Operations Log</span><i class="fas fa-arrow-right text-[12px]"></i></a>
+          <a href="#repositories" class="btn-ghost" style="width: auto; padding: 16px 32px; font-size: 14px;"><i class="fas fa-folder-tree text-[14px]"></i><span>View Repository Index</span></a>
+        </div>
+      </div>
+      <div class="lg:col-span-4 hidden lg:block">
+        <div class="card-3d p-8">
+          <div class="layer flex items-center justify-between mb-6 pb-4 border-b border-[var(--border)]">
+            <div class="font-mono text-[11px] text-muted tracking-widest font-bold">PROFILE.SPEC</div>
+            <div class="font-mono text-[11px] text-accent font-bold">v6.0</div>
+          </div>
+          <div class="space-y-5 font-mono text-sm">
+            <div class="flex justify-between"><span class="text-muted">discipline</span><span class="text-paper font-bold">CSE · Cybersecurity</span></div>
+            <div class="flex justify-between"><span class="text-muted">institution</span><span class="text-paper font-bold">SRMIST Chennai</span></div>
+            <div class="flex justify-between"><span class="text-muted">cgpa</span><span class="text-accent font-bold">8.83 / 10</span></div>
+            <div class="flex justify-between"><span class="text-muted">internships</span><span class="text-paper font-bold">4 completed</span></div>
+            <div class="flex justify-between"><span class="text-muted">certs</span><span class="text-paper font-bold">29 professional</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="brief" class="section-3d in-view py-32 relative z-10 border-t border-[var(--border)]">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <div class="grid lg:grid-cols-12 gap-12 lg:gap-20">
+      <div class="lg:col-span-5">
+        <div class="section-label mb-8">// 01 · BRIEF</div>
+        <h2 class="font-display font-light text-4xl md:text-6xl leading-[1.05] mb-6 text-paper">
+          <span class="reveal-line"><span>Operating at the</span></span>
+          <span class="reveal-line"><span><em class="italic" style="color: var(--accent);">intersection</em> of</span></span>
+          <span class="reveal-line"><span>security & intelligence.</span></span>
+        </h2>
+        <div class="flex items-center gap-4 mt-8 pt-8 border-t border-[var(--border)]">
+          <div class="font-display text-5xl text-accent font-bold">01</div>
+          <div><div class="font-mono text-[11px] text-muted tracking-widest mb-1 font-bold">EDUCATION</div><div class="text-paper font-bold text-lg">B.Tech CSE, SRMIST</div><div class="font-mono text-xs text-muted">2024 — Present · 8.83 CGPA</div></div>
+        </div>
+        <div class="flex items-center gap-4 mt-6 pt-6 border-t border-[var(--border)]">
+          <div class="font-display text-5xl text-accent font-bold">02</div>
+          <div><div class="font-mono text-[11px] text-muted tracking-widest mb-1 font-bold">FOUNDATION</div><div class="text-paper font-bold text-lg">KSR Akshara Academy</div><div class="font-mono text-xs text-muted">HSC · 2010 — 2024</div></div>
+        </div>
+      </div>
+      <div class="lg:col-span-7">
+        <div class="space-y-8 text-xl text-paper-dim leading-relaxed">
+          <p>I'm a Computer Science undergraduate at <span class="text-paper font-semibold">SRMIST Chennai</span> with a <span class="text-accent font-semibold">8.83 CGPA</span>, focused on the practice of securing modern distributed systems — from zero-trust access controls to web exploit disclosure.</p>
+          <p>Through four AICTE-recognised internships with <span class="text-paper font-semibold">Zscaler, Palo Alto Networks, Fortinet, and EduSkills</span>, I've reviewed cloud-native security policies, configured enterprise firewalls and VPN tunnels, investigated 8+ threat scenarios on NGFW, and disclosed 10+ vulnerabilities across OWASP Top 10 categories.</p>
+          <p>My practice extends beyond security. I hold <span class="text-paper font-semibold">29 professional certifications</span> spanning Oracle AI Vector Search, Cloud Infrastructure, Data Platforms, Google Cybersecurity, and ISRO geodata analysis.</p>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16 pt-12 border-t border-[var(--border)]">
+          <div><div class="font-display text-6xl text-accent mb-1 font-bold" data-count="4">0</div><div class="font-mono text-[11px] text-muted tracking-widest font-bold">AICTE<br>INTERNSHIPS</div></div>
+          <div><div class="font-display text-6xl text-accent mb-1 font-bold" data-count="29">0</div><div class="font-mono text-[11px] text-muted tracking-widest font-bold">PROFESSIONAL<br>CERTIFICATIONS</div></div>
+          <div><div class="font-display text-6xl text-accent mb-1 font-bold" data-count="8.83" data-decimals="2">0</div><div class="font-mono text-[11px] text-muted tracking-widest font-bold">CURRENT<br>CGPA / 10</div></div>
+          <div><div class="font-display text-6xl text-accent mb-1 font-bold" data-count="10">0+</div><div class="font-mono text-[11px] text-muted tracking-widest font-bold">VULNERABILITIES<br>DISCLOSED</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="capabilities" class="section-3d in-view py-32 relative z-10 border-t border-[var(--border)]">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
+      <div>
+        <div class="section-label mb-6">// 02 · CAPABILITIES</div>
+        <h2 class="font-display font-light text-4xl md:text-6xl leading-[1.05] text-paper">
+          <span class="reveal-line"><span>Technical</span></span>
+          <span class="reveal-line"><span><em class="italic" style="color: var(--accent);">arsenal</em> across four domains.</span></span>
+        </h2>
+      </div>
+    </div>
+    <div class="grid md:grid-cols-2 gap-6">
+      <div class="card-3d p-10">
+        <div class="layer layer-1 flex items-start justify-between mb-8"><div><div class="font-mono text-[11px] text-accent tracking-widest mb-2 font-bold">DOMAIN_01</div><h3 class="font-display text-3xl text-paper">Security Platforms</h3></div><i class="fas fa-shield-halved text-3xl text-muted"></i></div>
+        <div class="space-y-6">
+          <div><div class="flex justify-between font-mono text-sm mb-2"><span class="text-paper font-bold">Zscaler · ZTNA / SASE</span><span class="text-accent font-bold">90</span></div><div class="bar"><div class="bar-fill" data-width="90"></div></div></div>
+          <div><div class="flex justify-between font-mono text-sm mb-2"><span class="text-paper font-bold">Palo Alto NGFW</span><span class="text-accent font-bold">85</span></div><div class="bar"><div class="bar-fill" data-width="85"></div></div></div>
+          <div><div class="flex justify-between font-mono text-sm mb-2"><span class="text-paper font-bold">Fortinet FortiGate</span><span class="text-accent font-bold">85</span></div><div class="bar"><div class="bar-fill" data-width="85"></div></div></div>
+        </div>
+      </div>
+      <div class="card-3d p-10">
+        <div class="layer layer-1 flex items-start justify-between mb-8"><div><div class="font-mono text-[11px] text-accent tracking-widest mb-2 font-bold">DOMAIN_02</div><h3 class="font-display text-3xl text-paper">Tools & OS</h3></div><i class="fas fa-terminal text-3xl text-muted"></i></div>
+        <div class="space-y-6">
+          <div><div class="flex justify-between font-mono text-sm mb-2"><span class="text-paper font-bold">Linux</span><span class="text-accent font-bold">88</span></div><div class="bar"><div class="bar-fill" data-width="88"></div></div></div>
+          <div><div class="flex justify-between font-mono text-sm mb-2"><span class="text-paper font-bold">SQL</span><span class="text-accent font-bold">82</span></div><div class="bar"><div class="bar-fill" data-width="82"></div></div></div>
+          <div><div class="flex justify-between font-mono text-sm mb-2"><span class="text-paper font-bold">Chrome DevTools</span><span class="text-accent font-bold">80</span></div><div class="bar"><div class="bar-fill" data-width="80"></div></div></div>
+        </div>
+      </div>
+      <div class="card-3d p-10">
+        <div class="layer layer-1 flex items-start justify-between mb-8"><div><div class="font-mono text-[11px] text-accent tracking-widest mb-2 font-bold">DOMAIN_03</div><h3 class="font-display text-3xl text-paper">Core Concepts</h3></div><i class="fas fa-diagram-project text-3xl text-muted"></i></div>
+        <div class="layer layer-2 flex flex-wrap gap-3">
+          <span class="tag">Zero Trust</span><span class="tag">Network Security</span><span class="tag">Cyber Forensics</span><span class="tag">Web Exploit Hunting</span><span class="tag">Bug Bounty</span><span class="tag">IPS</span><span class="tag">VPN</span><span class="tag">Threat Intel</span>
+        </div>
+      </div>
+      <div class="card-3d p-10">
+        <div class="layer layer-1 flex items-start justify-between mb-8"><div><div class="font-mono text-[11px] text-accent tracking-widest mb-2 font-bold">DOMAIN_04</div><h3 class="font-display text-3xl text-paper">AI/ML & Cloud</h3></div><i class="fas fa-cloud text-3xl text-muted"></i></div>
+        <div class="space-y-6">
+          <div><div class="flex justify-between font-mono text-sm mb-2"><span class="text-paper font-bold">Oracle AI Vector Search</span><span class="text-accent font-bold">88</span></div><div class="bar"><div class="bar-fill" data-width="88"></div></div></div>
+          <div><div class="flex justify-between font-mono text-sm mb-2"><span class="text-paper font-bold">Oracle Cloud AI Foundations</span><span class="text-accent font-bold">85</span></div><div class="bar"><div class="bar-fill" data-width="85"></div></div></div>
+          <div><div class="flex justify-between font-mono text-sm mb-2"><span class="text-paper font-bold">AI/ML for Geodata (ISRO)</span><span class="text-accent font-bold">82</span></div><div class="bar"><div class="bar-fill" data-width="82"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="operations" class="section-3d in-view py-32 relative z-10 border-t border-[var(--border)]">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <div class="mb-20">
+      <div class="section-label mb-6">// 03 · OPERATIONS LOG</div>
+      <h2 class="font-display font-light text-4xl md:text-6xl leading-[1.05] text-paper">
+        <span class="reveal-line"><span>Four internships,</span></span>
+        <span class="reveal-line"><span>one <em class="italic" style="color: var(--accent);">continuous</em> practice.</span></span>
+      </h2>
+    </div>
+    <div class="tl-section relative pl-16">
+      <div class="tl-rail-3d absolute left-4 top-0 bottom-0 w-1"></div>
+      <div class="tl-rail-3d absolute left-4 top-0 w-1" id="tlFill" style="height: 0;"></div>
+      <div class="space-y-12">
+        <div class="relative tl-card-3d in-view">
+          <div class="absolute left-4 top-2 -translate-x-1/2 w-6 h-6 rounded-full bg-ink border-2 border-[var(--accent)]" style="box-shadow: 0 0 25px var(--accent);"></div>
+          <div class="card-3d p-10">
+            <div class="layer layer-1 flex flex-wrap items-start justify-between gap-3 mb-6">
+              <div><div class="font-mono text-[11px] text-accent tracking-widest mb-3 font-bold">JAN 2026 — PRESENT</div><h3 class="font-display text-3xl mb-2 text-paper">Zero Trust Cloud Security</h3><div class="text-paper-dim text-base flex items-center gap-2"><i class="fas fa-shield text-accent text-sm"></i> Zscaler · Virtual Internship</div></div>
+              <span class="tag"><span class="dot"></span> ACTIVE</span>
+            </div>
+            <p class="text-base text-paper-dim">Reviewed 15+ cloud-native security policies and cut simulated attack surface by 30% via least-privilege access controls.</p>
+          </div>
+        </div>
+        <div class="relative tl-card-3d in-view">
+          <div class="absolute left-4 top-2 -translate-x-1/2 w-6 h-6 rounded-full bg-ink border-2 border-[var(--accent)]" style="box-shadow: 0 0 25px var(--accent);"></div>
+          <div class="card-3d p-10">
+            <div class="layer layer-1 flex flex-wrap items-start justify-between gap-3 mb-6">
+              <div><div class="font-mono text-[11px] text-accent tracking-widest mb-3 font-bold">OCT 2025 — DEC 2025</div><h3 class="font-display text-3xl mb-2 text-paper">Web Exploit Hunting & Bug Bounty</h3><div class="text-paper-dim text-base flex items-center gap-2"><i class="fas fa-bug text-accent text-sm"></i> EduSkills · AICTE</div></div>
+              <span class="tag"><i class="fas fa-check text-accent text-[10px]"></i> COMPLETED</span>
+            </div>
+            <p class="text-base text-paper-dim">Identified 10+ vulnerabilities — XSS, IDOR, CSRF, SQLi — with structured disclosure reports.</p>
+          </div>
+        </div>
+        <div class="relative tl-card-3d in-view">
+          <div class="absolute left-4 top-2 -translate-x-1/2 w-6 h-6 rounded-full bg-ink border-2 border-[var(--accent)]" style="box-shadow: 0 0 25px var(--accent);"></div>
+          <div class="card-3d p-10">
+            <div class="layer layer-1 flex flex-wrap items-start justify-between gap-3 mb-6">
+              <div><div class="font-mono text-[11px] text-accent tracking-widest mb-3 font-bold">JUL 2025 — SEP 2025</div><h3 class="font-display text-3xl mb-2 text-paper">Fortinet Network Security Associate</h3><div class="text-paper-dim text-base flex items-center gap-2"><i class="fas fa-network-wired text-accent text-sm"></i> EduSkills · AICTE</div></div>
+              <span class="tag"><i class="fas fa-certificate text-accent text-[10px]"></i> FNSA CERTIFIED</span>
+            </div>
+            <p class="text-base text-paper-dim">Configured FortiGate firewall rules, VPN tunnels, and IPS policies across 5+ network topology simulations.</p>
+          </div>
+        </div>
+        <div class="relative tl-card-3d in-view">
+          <div class="absolute left-4 top-2 -translate-x-1/2 w-6 h-6 rounded-full bg-ink border-2 border-[var(--accent)]" style="box-shadow: 0 0 25px var(--accent);"></div>
+          <div class="card-3d p-10">
+            <div class="layer layer-1 flex flex-wrap items-start justify-between gap-3 mb-6">
+              <div><div class="font-mono text-[11px] text-accent tracking-widest mb-3 font-bold">APR 2025 — JUN 2025</div><h3 class="font-display text-3xl mb-2 text-paper">Cybersecurity Virtual Internship</h3><div class="text-paper-dim text-base flex items-center gap-2"><i class="fas fa-shield-virus text-accent text-sm"></i> Palo Alto Networks · EduSkills</div></div>
+              <span class="tag"><i class="fas fa-check text-accent text-[10px]"></i> COMPLETED</span>
+            </div>
+            <p class="text-base text-paper-dim">Investigated 8+ threat scenarios and deployed NGFW prevention policies across 3 simulated network environments.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="repositories" class="section-3d in-view py-32 relative z-10 border-t border-[var(--border)]">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
+      <div>
+        <div class="section-label mb-6">// 04 · REPOSITORY INDEX</div>
+        <h2 class="font-display font-light text-4xl md:text-6xl leading-[1.05] text-paper">
+          <span class="reveal-line"><span>Code</span></span>
+          <span class="reveal-line"><span><em class="italic" style="color: var(--accent);">deployed</em> & documented.</span></span>
+        </h2>
+      </div>
+    </div>
+    <div class="book-stand grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+      <div class="book-card p-8 flex flex-col h-full"><div class="layer flex items-start justify-between mb-6"><div class="font-mono text-[11px] text-accent tracking-widest font-bold">PROJECT_01</div><i class="fas fa-robot text-2xl text-muted"></i></div><h3 class="layer font-display text-2xl mb-4 text-paper">XARE-AGENT</h3><p class="text-base text-paper-dim mb-8 flex-grow">AI agent platform for autonomous workflows.</p><a href="https://xare-agent.vercel.app" target="_blank" class="btn-ghost"><i class="fas fa-rocket text-[12px]"></i><span>Live Deployment</span></a></div>
+      <div class="book-card p-8 flex flex-col h-full"><div class="layer flex items-start justify-between mb-6"><div class="font-mono text-[11px] text-accent tracking-widest font-bold">PROJECT_02</div><i class="fas fa-chart-line text-2xl text-muted"></i></div><h3 class="layer font-display text-2xl mb-4 text-paper">StreamEarn-8</h3><p class="text-base text-paper-dim mb-8 flex-grow">Full-stack platform to track streaming revenue.</p><a href="https://stream-earn-8.vercel.app" target="_blank" class="btn-ghost"><i class="fas fa-rocket text-[12px]"></i><span>Live Deployment</span></a></div>
+      <div class="book-card p-8 flex flex-col h-full"><div class="layer flex items-start justify-between mb-6"><div class="font-mono text-[11px] text-accent tracking-widest font-bold">PROJECT_03</div><i class="fas fa-calculator text-2xl text-muted"></i></div><h3 class="layer font-display text-2xl mb-4 text-paper">Cryptarithmetic Solver</h3><p class="text-base text-paper-dim mb-8 flex-grow">Interactive solver for classic puzzles visualizing backtracking.</p><a href="https://cryptarithmetic-solver-electron-app.vercel.app" target="_blank" class="btn-ghost"><i class="fas fa-rocket text-[12px]"></i><span>Live Deployment</span></a></div>
+      <div class="book-card p-8 flex flex-col h-full"><div class="layer flex items-start justify-between mb-6"><div class="font-mono text-[11px] text-accent tracking-widest font-bold">PROJECT_04</div><i class="fas fa-microchip text-2xl text-muted"></i></div><h3 class="layer font-display text-2xl mb-4 text-paper">CPU Scheduler Showdown</h3><p class="text-base text-paper-dim mb-8 flex-grow">Web-based visual simulator for OS CPU scheduling algorithms.</p><a href="https://osproject-five.vercel.app" target="_blank" class="btn-ghost"><i class="fas fa-rocket text-[12px]"></i><span>Live Deployment</span></a></div>
+      <div class="book-card p-8 flex flex-col h-full"><div class="layer flex items-start justify-between mb-6"><div class="font-mono text-[11px] text-accent tracking-widest font-bold">PROJECT_05</div><i class="fas fa-link text-2xl text-muted"></i></div><h3 class="layer font-display text-2xl mb-4 text-paper">LinkSprout</h3><p class="text-base text-paper-dim mb-8 flex-grow">Customizable link-in-bio tool with social cards.</p><a href="https://linksprout1.vercel.app" target="_blank" class="btn-ghost"><i class="fas fa-rocket text-[12px]"></i><span>Live Deployment</span></a></div>
+      <div class="book-card p-8 flex flex-col h-full"><div class="layer flex items-start justify-between mb-6"><div class="font-mono text-[11px] text-accent tracking-widest font-bold">PROJECT_06</div><i class="fas fa-briefcase text-2xl text-muted"></i></div><h3 class="layer font-display text-2xl mb-4 text-paper">Business Hub</h3><p class="text-base text-paper-dim mb-8 flex-grow">Business management dashboard designed for efficiency.</p><a href="https://bussiness-two.vercel.app" target="_blank" class="btn-ghost"><i class="fas fa-rocket text-[12px]"></i><span>Live Deployment</span></a></div>
+      <div class="book-card p-8 flex flex-col h-full"><div class="layer flex items-start justify-between mb-6"><div class="font-mono text-[11px] text-accent tracking-widest font-bold">PROJECT_07</div><i class="fas fa-graduation-cap text-2xl text-muted"></i></div><h3 class="layer font-display text-2xl mb-4 text-paper">Smart Campus Assistant</h3><p class="text-base text-paper-dim mb-8 flex-grow">Multi-agent AI for universities using Google ADK and Gemini.</p><a href="https://github.com/harinish45/smart-campus-assistant" target="_blank" class="btn-ghost"><i class="fab fa-github text-[12px]"></i><span>View Source Code</span></a></div>
+      <div class="book-card p-8 flex flex-col h-full"><div class="layer flex items-start justify-between mb-6"><div class="font-mono text-[11px] text-accent tracking-widest font-bold">PROJECT_08</div><i class="fas fa-eye text-2xl text-muted"></i></div><h3 class="layer font-display text-2xl mb-4 text-paper">PreFall Detection (Jetson)</h3><p class="text-base text-paper-dim mb-8 flex-grow">Real-time edge AI fall detection on Jetson Nano hardware.</p><a href="https://github.com/harinish45/prefall_detection_jetson" target="_blank" class="btn-ghost"><i class="fab fa-github text-[12px]"></i><span>View Source Code</span></a></div>
+      <div class="book-card p-8 flex flex-col h-full"><div class="layer flex items-start justify-between mb-6"><div class="font-mono text-[11px] text-accent tracking-widest font-bold">PROJECT_09</div><i class="fas fa-person-walking text-2xl text-muted"></i></div><h3 class="layer font-display text-2xl mb-4 text-paper">PreFall Detection (Local)</h3><p class="text-base text-paper-dim mb-8 flex-grow">Local ML version of the fall detection model for training.</p><a href="https://github.com/harinish45/prefall_detection" target="_blank" class="btn-ghost"><i class="fab fa-github text-[12px]"></i><span>View Source Code</span></a></div>
+      <div class="book-card p-8 flex flex-col h-full"><div class="layer flex items-start justify-between mb-6"><div class="font-mono text-[11px] text-accent tracking-widest font-bold">PROJECT_10</div><i class="fas fa-code text-2xl text-muted"></i></div><h3 class="layer font-display text-2xl mb-4 text-paper">SRM STEP 100 Hours</h3><p class="text-base text-paper-dim mb-8 flex-grow">Java practice problems from SRM STEP 100 Coding Hours.</p><a href="https://github.com/harinish45/SRM-STEP-100-CodIn-Hours-Practice" target="_blank" class="btn-ghost"><i class="fab fa-github text-[12px]"></i><span>View Source Code</span></a></div>
+      <div class="book-card p-8 flex flex-col h-full"><div class="layer flex items-start justify-between mb-6"><div class="font-mono text-[11px] text-accent tracking-widest font-bold">PROJECT_11</div><i class="fas fa-laptop-code text-2xl text-muted"></i></div><h3 class="layer font-display text-2xl mb-4 text-paper">Exercism Solutions</h3><p class="text-base text-paper-dim mb-8 flex-grow">Tracked solutions to Exercism tracks demonstrating consistency.</p><a href="https://github.com/harinish45/ExercismSolutions" target="_blank" class="btn-ghost"><i class="fab fa-github text-[12px]"></i><span>View Source Code</span></a></div>
+      <div class="book-card p-8 flex flex-col h-full"><div class="layer flex items-start justify-between mb-6"><div class="font-mono text-[11px] text-accent tracking-widest font-bold">PROJECT_12</div><i class="fas fa-music text-2xl text-muted"></i></div><h3 class="layer font-display text-2xl mb-4 text-paper">MUSIC-IAN</h3><p class="text-base text-paper-dim mb-8 flex-grow">Music-related application project currently in development.</p><a href="https://github.com/harinish45/MUSIC-IAN" target="_blank" class="btn-ghost"><i class="fab fa-github text-[12px]"></i><span>View Source Code</span></a></div>
+      <div class="book-card p-8 flex flex-col h-full"><div class="layer flex items-start justify-between mb-6"><div class="font-mono text-[11px] text-accent tracking-widest font-bold">PROJECT_13</div><i class="fas fa-building-shield text-2xl text-muted"></i></div><h3 class="layer font-display text-2xl mb-4 text-paper">EntityLink Karnataka</h3><p class="text-base text-paper-dim mb-8 flex-grow">Middleware connecting Karnataka Single Window with legacy depts.</p><a href="https://github.com/harinish45/EntityLink-Karnataka" target="_blank" class="btn-ghost"><i class="fab fa-github text-[12px]"></i><span>View Source Code</span></a></div>
+      <div class="book-card p-8 flex flex-col h-full"><div class="layer flex items-start justify-between mb-6"><div class="font-mono text-[11px] text-accent tracking-widest font-bold">PROJECT_14</div><i class="fas fa-heart-pulse text-2xl text-muted"></i></div><h3 class="layer font-display text-2xl mb-4 text-paper">VitalTrack Health Tracker</h3><p class="text-base text-paper-dim mb-8 flex-grow">Hostel meal and health tracking application for student wellness.</p><a href="https://github.com/harinish45/VitalTrack-Health-Meal-Tracker" target="_blank" class="btn-ghost"><i class="fab fa-github text-[12px]"></i><span>View Source Code</span></a></div>
+      <div class="book-card p-8 flex flex-col h-full" style="border-style: dashed; border-color: var(--accent);"><div class="layer flex items-start justify-between mb-6"><div class="font-mono text-[11px] text-accent tracking-widest font-bold">EXPLORE_MORE</div><i class="fab fa-github text-2xl text-muted"></i></div><h3 class="layer font-display text-2xl mb-4 text-paper">View All Repositories</h3><p class="text-base text-paper-dim mb-8 flex-grow">Visit my GitHub profile to explore all 27+ repositories.</p><a href="https://github.com/harinish45" target="_blank" class="btn-primary"><i class="fab fa-github text-[12px]"></i><span>GitHub @harinish45</span></a></div>
+    </div>
+  </div>
+</section>
+
+<section id="credentials" class="section-3d in-view py-32 relative z-10 border-t border-[var(--border)] overflow-hidden">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
+      <div>
+        <div class="section-label mb-6">// 05 · CREDENTIALS</div>
+        <h2 class="font-display font-light text-4xl md:text-6xl leading-[1.05] text-paper">
+          <span class="reveal-line"><span>29 verified</span></span>
+          <span class="reveal-line"><span><em class="italic" style="color: var(--accent);">certifications.</em></span></span>
+        </h2>
+      </div>
+      <div class="font-mono text-sm text-muted max-w-xs font-bold">Hover over the ring to stop it. Click any glowing panel to open the credential link.</div>
+    </div>
+
+    <div class="cred-stage">
+      <div class="cred-grid-floor"></div>
+      <div class="cred-core"></div>
+      <div class="cred-rotor" id="cred-rotor"></div>
+    </div>
+
+    <!-- 6 & 7 FIXED ALIGNMENT GRID -->
+    <div class="mt-32 grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-start">
+      
+      <!-- 6. RECOGNITION -->
+      <div class="flex flex-col gap-8">
+        <div>
+          <div class="section-label mb-6">// 06 · RECOGNITION</div>
+          <h3 class="font-display font-light text-4xl leading-tight text-paper">Key wins <em class="italic" style="color: var(--accent);">across domains.</em></h3>
+        </div>
+        <div class="space-y-8 w-full">
+          <div class="holo-vault">
+            <div class="font-display text-5xl md:text-6xl text-accent font-bold flex-shrink-0">29</div>
+            <div class="flex-grow">
+              <div class="font-bold mb-1 text-paper text-lg">Professional Certifications</div>
+              <div class="text-sm text-muted">Oracle, Google, IBM, ISRO, Fortinet, Cisco, and more.</div>
+            </div>
+          </div>
+          <div class="holo-vault">
+            <div class="font-display text-5xl md:text-6xl text-accent font-bold flex-shrink-0">04</div>
+            <div class="flex-grow">
+              <div class="font-bold mb-1 text-paper text-lg">AICTE-recognised internships</div>
+              <div class="text-sm text-muted">Zscaler, Palo Alto Networks, Fortinet, and EduSkills.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 7. LANGUAGES -->
+      <div class="flex flex-col gap-8">
+        <div>
+          <div class="section-label mb-6">// 07 · LANGUAGES</div>
+          <h3 class="font-display font-light text-4xl leading-tight text-paper">Spoken <em class="italic" style="color: var(--accent);">fluency.</em></h3>
+        </div>
+        <div class="lang-stage w-full py-8">
+          <div class="flex flex-col items-center gap-4">
+            <div class="energy-core">
+              <div class="core-ring" style="transform: rotateX(0deg)"></div>
+              <div class="core-ring" style="transform: rotateX(60deg)"></div>
+              <div class="core-ring" style="transform: rotateX(120deg)"></div>
+              <div class="core-ring" style="transform: rotateY(0deg)"></div>
+              <div class="core-ring" style="transform: rotateY(60deg)"></div>
+              <div class="core-ring" style="transform: rotateY(120deg)"></div>
+              <div class="core-reactor"></div>
+              <span class="core-text">95%</span>
+            </div>
+            <div class="font-mono text-sm text-muted font-bold">ENGLISH</div>
+          </div>
+          <div class="flex flex-col items-center gap-4">
+            <div class="energy-core" style="animation-delay: 1s;">
+              <div class="core-ring" style="transform: rotateX(0deg)"></div>
+              <div class="core-ring" style="transform: rotateX(60deg)"></div>
+              <div class="core-ring" style="transform: rotateX(120deg)"></div>
+              <div class="core-ring" style="transform: rotateY(0deg)"></div>
+              <div class="core-ring" style="transform: rotateY(60deg)"></div>
+              <div class="core-ring" style="transform: rotateY(120deg)"></div>
+              <div class="core-reactor"></div>
+              <span class="core-text">100%</span>
+            </div>
+            <div class="font-mono text-sm text-muted font-bold">TAMIL</div>
+          </div>
+          <div class="flex flex-col items-center gap-4">
+            <div class="energy-core" style="animation-delay: 2s;">
+              <div class="core-ring" style="transform: rotateX(0deg)"></div>
+              <div class="core-ring" style="transform: rotateX(60deg)"></div>
+              <div class="core-ring" style="transform: rotateX(120deg)"></div>
+              <div class="core-ring" style="transform: rotateY(0deg)"></div>
+              <div class="core-ring" style="transform: rotateY(60deg)"></div>
+              <div class="core-ring" style="transform: rotateY(120deg)"></div>
+              <div class="core-reactor"></div>
+              <span class="core-text">35%</span>
+            </div>
+            <div class="font-mono text-sm text-muted font-bold">MALAYALAM</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contact" class="section-3d in-view relative z-10 border-t border-[var(--border)] overflow-hidden" style="min-height: 100vh;">
+  <canvas id="nature-canvas"></canvas>
+  
+  <div class="relative z-10 max-w-7xl mx-auto px-6 lg:px-10 pt-32 pb-20">
+    <div class="mb-16">
+      <div class="section-label mb-6">// 08 · ESTABLISH CONNECTION</div>
+      <h2 class="font-display font-light leading-[0.95] mb-8 text-paper" style="font-size: clamp(3rem, 8vw, 6rem);">
+        <span class="reveal-line"><span>Let's build</span></span>
+        <span class="reveal-line"><span><em class="italic" style="color: var(--accent);">something secure.</em></span></span>
+      </h2>
+      <p class="text-xl text-paper-dim max-w-2xl bg-ink-2 p-6 rounded-lg backdrop-blur-md inline-block border border-[var(--border-strong)] font-light">Open to internship opportunities and security research collaboration. The ecosystem is active and listening.</p>
+    </div>
+    
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+      <a href="mailto:harinishsv@gmail.com" class="card-3d p-8 group backdrop-blur-md"><div class="layer layer-1"><i class="fas fa-envelope text-3xl text-accent mb-6"></i></div><div class="font-mono text-[11px] text-muted tracking-widest mb-3 font-bold">EMAIL</div><div class="font-bold text-base text-paper break-all">harinishsv@gmail.com</div></a>
+      <a href="tel:+919865613277" class="card-3d p-8 group backdrop-blur-md"><div class="layer layer-1"><i class="fas fa-phone text-3xl text-accent mb-6"></i></div><div class="font-mono text-[11px] text-muted tracking-widest mb-3 font-bold">PHONE</div><div class="font-bold text-base text-paper">+91 98656 13277</div></a>
+      <a href="https://github.com/harinish45" target="_blank" class="card-3d p-8 group backdrop-blur-md"><div class="layer layer-1"><i class="fab fa-github text-3xl text-accent mb-6"></i></div><div class="font-mono text-[11px] text-muted tracking-widest mb-3 font-bold">GITHUB</div><div class="font-bold text-base text-paper">@harinish45</div></a>
+      <a href="#" class="card-3d p-8 group backdrop-blur-md"><div class="layer layer-1"><i class="fab fa-linkedin text-3xl text-accent mb-6"></i></div><div class="font-mono text-[11px] text-muted tracking-widest mb-3 font-bold">LINKEDIN</div><div class="font-bold text-base text-paper">/in/harinishsv</div></a>
+    </div>
+  </div>
+</section>
+
+<footer class="py-12 border-t border-[var(--border)] relative z-10 backdrop-blur-md bg-ink-2">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 flex flex-col md:flex-row justify-between items-center gap-6 font-mono text-[11px] text-muted tracking-widest font-bold">
+    <div>HARINISH SABAPATHI · © 2026 · ALL CHANNELS OPEN</div>
+    <div class="flex items-center gap-6"><span>BUILT_WITH</span><span class="text-accent">WEBGL</span><span>·</span><span class="text-accent">CANVAS</span><span>·</span><span class="text-accent">TAILWIND</span></div>
+  </div>
+</footer>
+
+<script type="module">
+import * as THREE from 'three';
+
+const canvas = document.getElementById('webgl-bg');
+const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x050810, 1);
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x050810, 0.0015);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 4000);
+camera.position.z = 500;
+
+const pGeo = new THREE.BufferGeometry();
+const pCount = 3000;
+const pPos = new Float32Array(pCount * 3);
+const pCol = new Float32Array(pCount * 3);
+for (let i = 0; i < pCount * 3; i += 3) {
+  pPos[i] = (Math.random() - 0.5) * 2500; pPos[i+1] = (Math.random() - 0.5) * 1500; pPos[i+2] = (Math.random() - 0.5) * 2500;
+  const c = Math.random(); if (c > 0.8) { pCol[i]=0.8; pCol[i+1]=1.0; pCol[i+2]=0.3; } else if (c > 0.6) { pCol[i]=1.0; pCol[i+1]=1.0; pCol[i+2]=1.0; } else { pCol[i]=0.2; pCol[i+1]=0.2; pCol[i+2]=0.2; }
+}
+pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
+const pMat = new THREE.PointsMaterial({ size: 4, vertexColors: true, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending });
+scene.add(new THREE.Points(pGeo, pMat));
+
+const core = new THREE.Mesh(new THREE.IcosahedronGeometry(200, 1), new THREE.MeshBasicMaterial({ color: 0xcdff4d, wireframe: true, transparent: true, opacity: 0.3 }));
+scene.add(core);
+const innerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(120, 0), new THREE.MeshBasicMaterial({ color: 0xf5a623, wireframe: true, transparent: true, opacity: 0.2 }));
+scene.add(innerCore);
+
+let scrollY = 0, targetScrollY = 0, mouseX = 0, targetMouseX = 0, mouseY = 0, targetMouseY = 0;
+window.addEventListener('scroll', () => { targetScrollY = window.scrollY; });
+window.addEventListener('mousemove', (e) => {
+  targetMouseX = (e.clientX / window.innerWidth - 0.5) * 200;
+  targetMouseY = (e.clientY / window.innerHeight - 0.5) * 200;
+});
+
+const clock = new THREE.Clock();
+function animate3D() {
+  requestAnimationFrame(animate3D);
+  const t = clock.getElapsedTime();
+  scrollY += (targetScrollY - scrollY) * 0.05;
+  mouseX += (targetMouseX - mouseX) * 0.05;
+  mouseY += (targetMouseY - mouseY) * 0.05;
+  camera.position.z = 500 - (scrollY * 2.5);
+  camera.position.x = mouseX * 0.5;
+  camera.position.y = -mouseY * 0.5;
+  core.rotation.y = t * 0.2; core.rotation.z = t * 0.1;
+  innerCore.rotation.x = t * -0.3; innerCore.rotation.y = t * 0.15;
+  camera.lookAt(scene.position);
+  renderer.render(scene, camera);
+}
+animate3D();
+window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+
+const scrollInd = document.getElementById('scrollInd');
+window.addEventListener('scroll', () => { scrollInd.style.width = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100 + '%'; });
+
+const sectionObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('in-view');
+    }
+  });
+}, { threshold: 0.01 });
+document.querySelectorAll('.section-3d, .tl-card-3d, .reveal-line').forEach(el => sectionObserver.observe(el));
+document.querySelectorAll('#top .reveal-line').forEach(el => el.classList.add('in-view'));
+
+document.querySelectorAll('.card-3d, .holo-vault').forEach(card => {
+  card.addEventListener('mousemove', (e) => {
+    const r = card.getBoundingClientRect();
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    card.style.transform = `perspective(1000px) rotateX(${((y - r.height/2) / (r.height/2)) * -10}deg) rotateY(${((x - r.width/2) / (r.width/2)) * 10}deg) scale3d(1.02, 1.02, 1.02)`;
+    card.style.setProperty('--mx', x + 'px'); card.style.setProperty('--my', y + 'px');
+  });
+  card.addEventListener('mouseleave', () => { card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)'; });
+});
+
+const tlSection = document.getElementById('operations');
+const tlFill = document.getElementById('tlFill');
+window.addEventListener('scroll', () => {
+  if (!tlSection || !tlFill) return;
+  const r = tlSection.getBoundingClientRect();
+  const wh = window.innerHeight;
+  if (r.top < wh && r.bottom > 0) {
+    const total = r.height;
+    const passed = Math.max(0, Math.min(wh, wh - r.top));
+    const p = Math.max(0, Math.min(1, passed / (total * 0.8)));
+    tlFill.style.height = (p * 100) + '%';
+  }
+}, { passive: true });
+
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      if (entry.target.hasAttribute('data-count')) {
+        const el = entry.target; const target = parseFloat(el.dataset.count); const dec = el.dataset.decimals ? parseInt(el.dataset.decimals) : 0;
+        const dur = 1800; const start = performance.now();
+        function step(now) { const p = Math.min((now - start) / dur, 1); el.textContent = (target * (1 - Math.pow(1 - p, 3))).toFixed(dec); if (p < 1) requestAnimationFrame(step); }
+        requestAnimationFrame(step);
+      }
+      if (entry.target.classList.contains('bar-fill')) { setTimeout(() => entry.target.style.width = entry.target.dataset.width + '%', 150); }
+      io.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.15 });
+document.querySelectorAll('[data-count], .bar-fill').forEach(el => io.observe(el));
+
+const ninjaContainer = document.getElementById('ninja-container');
+const ninja = document.createElement('div');
+ninja.className = 'ninja-runner';
+ninja.innerHTML = `<svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M50 10 C30 10 20 30 20 50 C20 70 30 90 50 90 C70 90 80 70 80 50 C80 30 70 10 50 10 Z" fill="#cdff4d" stroke="#cdff4d" stroke-width="2"/>
+  <rect x="25" y="40" width="50" height="10" fill="#050608" rx="2"/>
+  <path d="M20 50 L5 80 L20 80 Z" fill="#cdff4d" stroke="#cdff4d" stroke-width="2"/>
+  <path d="M80 50 L95 80 L80 80 Z" fill="#cdff4d" stroke="#cdff4d" stroke-width="2"/>
+  <path d="M40 90 L30 120 L40 120 Z" fill="#cdff4d" stroke="#cdff4d" stroke-width="2"/>
+  <path d="M60 90 L70 120 L60 120 Z" fill="#cdff4d" stroke="#cdff4d" stroke-width="2"/>
+</svg>`;
+ninjaContainer.appendChild(ninja);
+
+function spawnShuriken() {
+  const briefSection = document.getElementById('brief');
+  const rect = briefSection.getBoundingClientRect();
+  if (rect.top < window.innerHeight && rect.bottom > 0) {
+    const ninjaRect = ninja.getBoundingClientRect();
+    const star = document.createElement('div');
+    star.className = 'shuriken';
+    star.style.left = (ninjaRect.left + 40) + 'px';
+    star.style.top = (ninjaRect.top + 20) + 'px';
+    const targetX = window.innerWidth + 200 - ninjaRect.left;
+    const targetY = (Math.random() * window.innerHeight) - ninjaRect.top;
+    const duration = 1.2 + Math.random() * 0.6;
+    star.style.transition = `transform ${duration}s linear, opacity ${duration}s linear`;
+    ninjaContainer.appendChild(star);
+    setTimeout(() => {
+      star.style.transform = `translate(${targetX}px, ${targetY}px) rotate3d(1, 1, 1, 720deg) scale(3)`;
+      star.style.opacity = '0';
+    }, 10);
+    setTimeout(() => star.remove(), duration * 1000 + 100);
+  }
+}
+setInterval(spawnShuriken, 800);
+
+const certData = [
+  { name: "Oracle AI Vector Search Certified Professional", url: "https://catalog-education.oracle.com/pls/certview/sharebadge?id=B82EC223DD42154520C6C5BE5F013F893060F2A1553BCCC150484C6DDA6A1E4E" },
+  { name: "Oracle Cloud Infrastructure 2025 Certified AI Foundations Associate", url: "https://catalog-education.oracle.com/pls/certview/sharebadge?id=6C12DD9EDCC681BD1A684E101151A92737C56AA5096E0712BBF81B14F942F319" },
+  { name: "Oracle Data Platform 2025 Certified Foundations Associate", url: "https://catalog-education.oracle.com/pls/certview/sharebadge?id=437AD559A986F1485A609D896C1DB670B2FDD717FB0A5BA4A2D39E8D755A0305" },
+  { name: "Zero Trust Cloud Security Virtual Internship (EduSkills)", url: "https://certificate.eduskillsfoundation.org/verify/4e96b31ed5f9fdb152ab/4e96b31ed5f9fdb152ab" },
+  { name: "Google Cybersecurity Specialization", url: "https://www.coursera.org/account/accomplishments/specialization/Z3NV4UW23WOT" },
+  { name: "Fortinet Certified Associate Cybersecurity", url: "https://www.credly.com/badges/660b2a68-df3c-46cc-98e6-734cde689001/linked_in_profile" },
+  { name: "Software Defined Networking (Univ of Chicago)", url: "https://www.coursera.org/account/accomplishments/records/5TIHX95SWJ7H" },
+  { name: "Machine Learning with Python (IBM)", url: "https://www.coursera.org/account/accomplishments/records/E0QG0VLSITQR" },
+  { name: "Intro to Threat Intelligence Lifecycle (IBM)", url: "https://www.coursera.org/account/accomplishments/records/8D15901T961P" },
+  { name: "Sound the Alarm: Detection and Response", url: "https://www.coursera.org/account/accomplishments/verify/YUDQIF2WQT9J" },
+  { name: "Tools of the Trade: Linux and SQL", url: "https://www.coursera.org/account/accomplishments/records/MH9C0P8IMXSW" },
+  { name: "Assets, Threats, and Vulnerabilities", url: "https://www.coursera.org/account/accomplishments/verify/NZ7JMBXGM2DG" },
+  { name: "Accelerate Your Job Search with AI", url: "https://www.coursera.org/account/accomplishments/records/YV8YH435YNB8" },
+  { name: "The Agnirva Space Internship Program (ISRO)", url: "https://certificate.iirs.gov.in" },
+  { name: "Basics of Remote Sensing, GIS and GNSS (ISRO)", url: "https://certificate.iirs.gov.in" },
+  { name: "Remote Sensing and Digital Image Analysis (ISRO)", url: "https://certificate.iirs.gov.in" },
+  { name: "Intro to Cybersecurity Careers", url: "https://www.credly.com/badges/80c056a0-054f-43df-a377-6aeddec159a7/linked_in_profile" },
+  { name: "Cybersecurity Fundamentals (IBM)", url: "https://www.credly.com/badges/264b7def-6ed5-4396-82cf-5a82c49aa946/linked_in_profile" },
+  { name: "Intro to Cybersecurity (Cisco)", url: "https://www.credly.com/badges/a649dbf5-19ec-482f-8534-f3c89acc0a90/linked_in_profile" },
+  { name: "AI for Beginners (HP LIFE)", url: "https://www.life-global.org/certificate/41c9e952-e4b1-494e-9ce7-aabc7a6cb126" },
+  { name: "Foundations of AI (ULSA)", url: "https://www.credential.net/98ca95e9-d232-4d62-87de-cb38b3bbbd87" },
+  { name: "Cybersecurity for Beginners (Tata STRIVE)", url: "#" },
+  { name: "Connect and Protect: Networks and Network Security", url: "https://www.coursera.org/account/accomplishments/verify/QUM1U69XJL45" },
+  { name: "Play It Safe: Manage Security Risks", url: "https://www.coursera.org/account/accomplishments/verify/7WE7USB2PBEK" },
+  { name: "Foundations of Cybersecurity", url: "https://coursera.org/verify/C6LYQB3HFY6J" },
+  { name: "Security Principles (ISC2)", url: "https://coursera.org/verify/RI9WSJ8P7ZE5" },
+  { name: "Governance, Risk, Compliance, and Data Privacy", url: "https://www.credly.com/badges/9ba92be8-5262-4728-8026-1346f3c1476c/linked_in_profile" },
+  { name: "Java Programming for Beginners", url: "https://www.coursera.org/account/accomplishments/records/GZC3B5ZOA5CQ" },
+  { name: "Kaggle Notebook Modeler Regular", url: "https://www.kaggle.com/certification/badges/harinishsabapathi/39" }
+];
+
+const credRotor = document.getElementById('cred-rotor');
+const step = 360 / certData.length;
+const radius = 900;
+
+certData.forEach((c, i) => {
+  const a = document.createElement('a');
+  a.className = 'cred-card';
+  a.href = c.url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.style.transform = `rotateY(${i * step}deg) translateZ(${radius}px)`;
+  a.innerHTML = `
+    <div class="font-mono text-[9px] text-accent mb-1 font-bold tracking-widest">CERT ${i+1}</div>
+    <div class="font-display text-xs text-paper font-bold leading-tight">${c.name}</div>
+  `;
+  credRotor.appendChild(a);
+});
+
+const natureCanvas = document.getElementById('nature-canvas');
+const nctx = natureCanvas.getContext('2d');
+let ncW, ncH;
+function resizeNature() {
+  const rect = natureCanvas.parentElement.getBoundingClientRect();
+  natureCanvas.width = rect.width; natureCanvas.height = rect.height;
+  ncW = rect.width; ncH = rect.height;
+}
+resizeNature();
+window.addEventListener('resize', resizeNature);
+
+const people = [];
+for(let i=0; i<30; i++) {
+  people.push({ 
+    x: Math.random() * ncW, 
+    y: ncH * 0.75 + Math.random() * 120, 
+    vx: (Math.random() - 0.5) * 1.5, 
+    vy: 0, 
+    c: Math.random() > 0.5 ? '#cdff4d' : '#f5a623',
+    trail: []
+  });
+}
+
+const water = [];
+for(let i=0; i<500; i++) {
+  water.push({ x: ncW * 0.3 + Math.random() * 80, y: Math.random() * ncH * 0.6, vy: 4 + Math.random() * 6 });
+}
+
+const ripples = [];
+
+const spores = [];
+for(let i=0; i<60; i++) {
+  spores.push({
+    x: Math.random() * ncW,
+    y: Math.random() * ncH,
+    vx: (Math.random() - 0.5) * 0.2,
+    vy: (Math.random() - 0.5) * 0.2,
+    s: Math.random() * 0.05 + 0.95
+  });
+}
+
+let parallaxOffset = 0;
+
+function drawNature() {
+  nctx.clearRect(0, 0, ncW, ncH);
+  
+  const grad = nctx.createLinearGradient(0, 0, 0, ncH);
+  grad.addColorStop(0, 'rgba(5, 8, 12, 0.9)');
+  grad.addColorStop(1, 'rgba(15, 25, 35, 0.5)');
+  nctx.fillStyle = grad;
+  nctx.fillRect(0,0, ncW, ncH);
+
+  const sunX = ncW * 0.7;
+  const sunY = ncH * 0.4;
+  const sunR = 150;
+  const sunGrad = nctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunR);
+  sunGrad.addColorStop(0, 'rgba(255, 200, 100, 0.8)');
+  sunGrad.addColorStop(0.5, 'rgba(255, 100, 50, 0.4)');
+  sunGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
+  nctx.fillStyle = sunGrad;
+  nctx.fillRect(sunX - sunR, sunY - sunR, sunR * 2, sunR * 2);
+
+  nctx.beginPath();
+  nctx.arc(sunX, sunY, sunR / 2, 0, Math.PI * 2);
+  nctx.fillStyle = 'rgba(255, 220, 150, 0.9)';
+  nctx.shadowBlur = 80; nctx.shadowColor = '#ffaa00';
+  nctx.fill(); nctx.shadowBlur = 0;
+
+  nctx.fillStyle = 'rgba(10, 15, 20, 0.9)';
+  nctx.beginPath();
+  nctx.moveTo(0, ncH * 0.6);
+  for(let x=0; x<=ncW; x+=50) { nctx.lineTo(x + parallaxOffset * 0.2, ncH * 0.6 - Math.sin(x * 0.01) * 100 - Math.cos(x * 0.02) * 50); }
+  nctx.lineTo(ncW, ncH); nctx.lineTo(0, ncH); nctx.fill();
+  
+  nctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+  nctx.lineWidth = 2;
+  nctx.beginPath();
+  nctx.moveTo(0, ncH * 0.6);
+  for(let x=0; x<=ncW; x+=50) { nctx.lineTo(x + parallaxOffset * 0.2, ncH * 0.6 - Math.sin(x * 0.01) * 100 - Math.cos(x * 0.02) * 50); }
+  nctx.stroke();
+
+  nctx.fillStyle = 'rgba(20, 30, 40, 0.95)';
+  nctx.beginPath();
+  nctx.moveTo(0, ncH * 0.75);
+  for(let x=0; x<=ncW; x+=40) { nctx.lineTo(x + parallaxOffset * 0.5, ncH * 0.75 - Math.sin(x * 0.015) * 80 - Math.cos(x * 0.025) * 40); }
+  nctx.lineTo(ncW, ncH); nctx.lineTo(0, ncH); nctx.fill();
+  
+  nctx.strokeStyle = 'rgba(205, 255, 77, 0.4)';
+  nctx.lineWidth = 2;
+  nctx.beginPath();
+  nctx.moveTo(0, ncH * 0.75);
+  for(let x=0; x<=ncW; x+=40) { nctx.lineTo(x + parallaxOffset * 0.5, ncH * 0.75 - Math.sin(x * 0.015) * 80 - Math.cos(x * 0.025) * 40); }
+  nctx.stroke();
+
+  nctx.fillStyle = 'rgba(30, 45, 55, 1)';
+  nctx.beginPath();
+  nctx.moveTo(0, ncH * 0.88);
+  for(let x=0; x<=ncW; x+=30) { nctx.lineTo(x + parallaxOffset, ncH * 0.88 - Math.sin(x * 0.02 + 1) * 50 - Math.cos(x * 0.04) * 30); }
+  nctx.lineTo(ncW, ncH); nctx.lineTo(0, ncH); nctx.fill();
+  
+  nctx.strokeStyle = 'rgba(255, 100, 50, 0.6)';
+  nctx.lineWidth = 2;
+  nctx.beginPath();
+  nctx.moveTo(0, ncH * 0.88);
+  for(let x=0; x<=ncW; x+=30) { nctx.lineTo(x + parallaxOffset, ncH * 0.88 - Math.sin(x * 0.02 + 1) * 50 - Math.cos(x * 0.04) * 30); }
+  nctx.stroke();
+
+  water.forEach(p => {
+    p.y += p.vy;
+    if (p.y > ncH * 0.88) { 
+      p.y = ncH * 0.3 + Math.random() * 50; 
+      p.x = ncW * 0.3 + Math.random() * 80; 
+      ripples.push({ x: p.x, y: ncH * 0.88, r: 0, o: 1 });
+    }
+    nctx.fillStyle = `rgba(0, 255, 255, ${0.8 - (p.y / ncH)})`;
+    nctx.fillRect(p.x, p.y, 4, 12);
+  });
+
+  ripples.forEach((rp, i) => {
+    rp.r += 1.5; rp.o -= 0.02;
+    if (rp.o <= 0) ripples.splice(i, 1);
+    nctx.beginPath();
+    nctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
+    nctx.strokeStyle = `rgba(0, 255, 255, ${rp.o})`;
+    nctx.lineWidth = 2;
+    nctx.stroke();
+  });
+
+  const lakeGrad = nctx.createLinearGradient(0, ncH * 0.88, 0, ncH);
+  lakeGrad.addColorStop(0, 'rgba(0, 255, 255, 0.1)');
+  lakeGrad.addColorStop(1, 'rgba(15, 25, 35, 0.8)');
+  nctx.fillStyle = lakeGrad;
+  nctx.fillRect(0, ncH * 0.88, ncW, ncH * 0.12);
+  
+  nctx.strokeStyle = 'rgba(0, 255, 255, 0.2)';
+  nctx.lineWidth = 1;
+  for(let i=0; i<5; i++) {
+    nctx.beginPath();
+    nctx.moveTo(0, ncH * 0.9 + i * 8);
+    nctx.lineTo(ncW, ncH * 0.9 + i * 8);
+    nctx.stroke();
+  }
+
+  spores.forEach(f => {
+    f.x += f.vx; f.y += f.vy;
+    if (f.x < 0 || f.x > ncW) f.vx *= -1;
+    if (f.y < 0 || f.y > ncH) f.vy *= -1;
+    const glow = 0.3 + Math.sin(Date.now() * f.s) * 0.3;
+    nctx.beginPath();
+    nctx.arc(f.x, f.y, 2, 0, Math.PI * 2);
+    nctx.fillStyle = `rgba(255, 255, 150, ${glow})`;
+    nctx.shadowBlur = 10; nctx.shadowColor = '#ffff99';
+    nctx.fill(); nctx.shadowBlur = 0;
+  });
+
+  people.forEach((p1, i) => {
+    p1.x += p1.vx;
+    if (p1.x < 0 || p1.x > ncW) p1.vx *= -1;
+    
+    p1.trail.push({x: p1.x, y: p1.y});
+    if(p1.trail.length > 15) p1.trail.shift();
+    p1.trail.forEach((t, idx) => {
+      nctx.beginPath();
+      nctx.arc(t.x, t.y, 5, 0, Math.PI * 2);
+      nctx.fillStyle = `rgba(${p1.c === '#cdff4d' ? '205, 255, 77' : '245, 166, 35'}, ${idx / p1.trail.length * 0.4})`;
+      nctx.fill();
+    });
+
+    nctx.beginPath();
+    nctx.arc(p1.x, p1.y, 8, 0, Math.PI * 2);
+    nctx.fillStyle = p1.c;
+    nctx.shadowBlur = 30; nctx.shadowColor = p1.c;
+    nctx.fill(); nctx.shadowBlur = 0;
+
+    people.forEach((p2, j) => {
+      if (i !== j) {
+        const dx = p1.x - p2.x, dy = p1.y - p2.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 200) {
+          nctx.beginPath();
+          nctx.moveTo(p1.x, p1.y);
+          nctx.lineTo(p2.x, p2.y);
+          nctx.strokeStyle = `rgba(205, 255, 77, ${0.8 - dist/250})`;
+          nctx.lineWidth = 3;
+          nctx.stroke();
+        }
+      }
+    });
+  });
+
+  requestAnimationFrame(drawNature);
+}
+drawNature();
+</script>
+</body>
+</html>
