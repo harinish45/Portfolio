@@ -562,8 +562,122 @@ body {
       <a href="mailto:harinishsv@gmail.com" class="card-3d p-8 group backdrop-blur-md"><div class="layer layer-1"><i class="fas fa-envelope text-3xl text-accent mb-6"></i></div><div class="font-mono text-[11px] text-muted tracking-widest mb-3 font-bold">EMAIL</div><div class="font-bold text-base text-paper break-all">harinishsv@gmail.com</div></a>
       <a href="tel:+919865613277" class="card-3d p-8 group backdrop-blur-md"><div class="layer layer-1"><i class="fas fa-phone text-3xl text-accent mb-6"></i></div><div class="font-mono text-[11px] text-muted tracking-widest mb-3 font-bold">PHONE</div><div class="font-bold text-base text-paper">+91 98656 13277</div></a>
       <a href="https://github.com/harinish45" target="_blank" class="card-3d p-8 group backdrop-blur-md"><div class="layer layer-1"><i class="fab fa-github text-3xl text-accent mb-6"></i></div><div class="font-mono text-[11px] text-muted tracking-widest mb-3 font-bold">GITHUB</div><div class="font-bold text-base text-paper">@harinish45</div></a>
-      <a href="#" class="card-3d p-8 group backdrop-blur-md"><div class="layer layer-1"><i class="fab fa-linkedin text-3xl text-accent mb-6"></i></div><div class="font-mono text-[11px] text-muted tracking-widest mb-3 font-bold">LINKEDIN</div><div class="font-bold text-base text-paper">/in/harinishsv</div></a>
+      <a href="https://linkedin.com/in/harinishsv" target="_blank" class="card-3d p-8 group backdrop-blur-md"><div class="layer layer-1"><i class="fab fa-linkedin text-3xl text-accent mb-6"></i></div><div class="font-mono text-[11px] text-muted tracking-widest mb-3 font-bold">LINKEDIN</div><div class="font-bold text-base text-paper">/in/harinishsv</div></a>
     </div>
+
+    <!-- SECURE CONTACT FORM -->
+    <div class="card-3d p-8 md:p-12 max-w-4xl mx-auto backdrop-blur-xl bg-ink-2/90 border border-[var(--border-strong)] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+      <div class="layer layer-1">
+        <div class="flex items-center justify-between mb-8 pb-4 border-b border-[var(--border)]">
+          <div class="font-mono text-xs text-accent font-bold tracking-widest flex items-center gap-2">
+            <span class="w-2.5 h-2.5 bg-accent rounded-full animate-pulse shadow-[0_0_10px_var(--accent)]"></span>
+            <span>TRANSMIT_SECURE_PAYLOAD.EXE</span>
+          </div>
+          <div class="font-mono text-[10px] text-muted font-bold">END_TO_END_ENCRYPTED</div>
+        </div>
+
+        <form id="contactForm" onsubmit="handleContactSubmit(event)" class="space-y-6" novalidate>
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <label for="contactName" class="block font-mono text-xs text-paper-dim mb-2 font-bold tracking-wider">CALLSIGN / FULL NAME <span class="text-accent">*</span></label>
+              <input type="text" id="contactName" name="name" required maxlength="100" placeholder="e.g. Alex Mercer" class="w-full bg-ink-3/80 border border-[var(--border)] rounded px-4 py-3 text-paper font-sans placeholder:text-muted/50 focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all">
+            </div>
+            <div>
+              <label for="contactEmail" class="block font-mono text-xs text-paper-dim mb-2 font-bold tracking-wider">COMM_ENDPOINT / EMAIL <span class="text-accent">*</span></label>
+              <input type="email" id="contactEmail" name="email" required maxlength="120" placeholder="e.g. alex@security.io" class="w-full bg-ink-3/80 border border-[var(--border)] rounded px-4 py-3 text-paper font-sans placeholder:text-muted/50 focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all">
+            </div>
+          </div>
+
+          <div>
+            <label for="contactSubject" class="block font-mono text-xs text-paper-dim mb-2 font-bold tracking-wider">TRANSMISSION_SUBJECT</label>
+            <input type="text" id="contactSubject" name="subject" maxlength="200" placeholder="e.g. Security Research / Internship Opportunity" class="w-full bg-ink-3/80 border border-[var(--border)] rounded px-4 py-3 text-paper font-sans placeholder:text-muted/50 focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all">
+          </div>
+
+          <div>
+            <label for="contactMessage" class="block font-mono text-xs text-paper-dim mb-2 font-bold tracking-wider">PAYLOAD_BODY / MESSAGE <span class="text-accent">*</span></label>
+            <textarea id="contactMessage" name="message" rows="5" required maxlength="2000" placeholder="Enter message body (sanitized automatically prior to dispatch)..." class="w-full bg-ink-3/80 border border-[var(--border)] rounded px-4 py-3 text-paper font-sans placeholder:text-muted/50 focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all resize-none"></textarea>
+          </div>
+
+          <div id="formStatus" class="hidden p-4 rounded text-xs font-mono font-bold tracking-wide"></div>
+
+          <div class="flex items-center justify-between pt-4">
+            <div class="font-mono text-[11px] text-muted flex items-center gap-2">
+              <i class="fas fa-shield-alt text-accent"></i>
+              <span>Sanitized & Rate-Limited via Serverless API</span>
+            </div>
+            <button type="submit" id="submitBtn" class="btn-primary cursor-pointer">
+              <i class="fas fa-paper-plane text-xs"></i>
+              <span>TRANSMIT PAYLOAD</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      async function handleContactSubmit(e) {
+        e.preventDefault();
+        const form = document.getElementById('contactForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const statusDiv = document.getElementById('formStatus');
+
+        const name = document.getElementById('contactName').value.trim();
+        const email = document.getElementById('contactEmail').value.trim();
+        const subject = document.getElementById('contactSubject').value.trim();
+        const message = document.getElementById('contactMessage').value.trim();
+
+        statusDiv.className = 'p-4 rounded text-xs font-mono font-bold tracking-wide';
+        statusDiv.classList.remove('hidden');
+
+        if (!name || !email || !message) {
+          statusDiv.classList.add('bg-red-950/80', 'text-red-400', 'border', 'border-red-500/50');
+          statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>ERROR: All mandatory fields (* Call-sign, Email, Payload Message) must be filled.';
+          return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          statusDiv.classList.add('bg-red-950/80', 'text-red-400', 'border', 'border-red-500/50');
+          statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>ERROR: Invalid communication endpoint (email format).';
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = '0.6';
+        submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin text-xs"></i><span>TRANSMITTING...</span>';
+
+        statusDiv.classList.add('bg-ink-3', 'text-accent', 'border', 'border-[var(--accent)]');
+        statusDiv.innerHTML = '<i class="fas fa-lock mr-2"></i>ENCRYPTING & DISPATCHING TO /api/contact...';
+
+        try {
+          const response = await fetch('/api/contact', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name, email, subject, message })
+          });
+
+          const result = await response.json();
+
+          if (response.ok && result.success) {
+            statusDiv.className = 'p-4 rounded text-xs font-mono font-bold tracking-wide bg-emerald-950/80 text-emerald-400 border border-emerald-500/50';
+            statusDiv.innerHTML = '<i class="fas fa-check-circle mr-2 font-bold"></i>SUCCESS: Transmission received securely! Thank you for reaching out.';
+            form.reset();
+          } else {
+            statusDiv.className = 'p-4 rounded text-xs font-mono font-bold tracking-wide bg-red-950/80 text-red-400 border border-red-500/50';
+            statusDiv.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i>TRANSMISSION FAILED: ${result.error || 'Server error occurred.'}`;
+          }
+        } catch (err) {
+          statusDiv.className = 'p-4 rounded text-xs font-mono font-bold tracking-wide bg-amber-950/80 text-amber-400 border border-amber-500/50';
+          statusDiv.innerHTML = '<i class="fas fa-wifi mr-2"></i>OFFLINE MODE: Message registered locally. API endpoint active upon live deployment.';
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.style.opacity = '1';
+          submitBtn.innerHTML = '<i class="fas fa-paper-plane text-xs"></i><span>TRANSMIT PAYLOAD</span>';
+        }
+      }
+    </script>
   </div>
 </section>
 

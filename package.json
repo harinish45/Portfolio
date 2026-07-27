@@ -1,0 +1,24 @@
+{
+  "name": "harinish-portfolio",
+  "version": "1.0.0",
+  "description": "3D Portfolio for Harinish Sabapathi",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx vercel dev",
+    "build": "echo 'Build step: static site ready for Vercel deployment'",
+    "test": "jest --detectOpenHandles"
+  },
+  "keywords": [
+    "portfolio",
+    "cybersecurity",
+    "3d",
+    "webgl",
+    "threejs"
+  ],
+  "author": "Harinish Sabapathi",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  }
+}
