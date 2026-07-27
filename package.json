@@ -4,8 +4,6 @@
   "description": "3D Portfolio for Harinish Sabapathi",
   "main": "index.html",
   "scripts": {
-    "start": "npx vercel dev",
-    "build": "echo 'Build step: static site ready for Vercel deployment'",
     "test": "jest --detectOpenHandles"
   },
   "keywords": [
